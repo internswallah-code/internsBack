@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://internswallah2.vercel.app/",
+    origin: "https://internswallah2.vercel.app",
     credentials: true,
   })
 );
