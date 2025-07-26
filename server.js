@@ -28,7 +28,10 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://internswallah2.vercel.app",
+   origin: [
+    'http://localhost:5173',                     // for local frontend dev
+    'https://internswallah2.vercel.app'          // for production frontend
+  ],
     credentials: true,
   })
 );
