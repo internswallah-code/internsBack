@@ -18,7 +18,7 @@ const jobPostSchema = new mongoose.Schema({
   experience: String,
   jobType: String,
   postedOn: String,
-  desecription: String
+  description: String
 });
 
 const jobPostModel = mongoose.model('jobPost', jobPostSchema)
