@@ -109,7 +109,10 @@ app.post("/employee-signup", async (req, res) => {
   try {
     const { fullName, email, password, phone, city, gender, languages, type } = req.body;
     const existing = await Employee.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Employee already exists" });
+    if (existing) return res.status(400).json({ message: "Employee with this email is already exists" });
+
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) return res.status(400).json({ message: "Employee with this mobile number is already exists" });
 
     const hashed = await Employee.hashPassword(password);
     const employee = await employeeService.createEmployee({ fullName, email, password: hashed, phone, city, gender, languages, type });
