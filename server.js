@@ -28,7 +28,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://internswallah2.vercel.app",
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );
@@ -70,7 +70,10 @@ app.post("/signup", async (req, res) => {
     const { fullName, email, password, phone, city, companyType, workField, role, address } = req.body;
 
     const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: "User already exists" });
+    if (existing) return res.status(400).json({ message: "User with this email is already exists" });
+
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) return res.status(400).json({ message: "User with this mobile number is already exists" });
 
     const hashed = await User.hashPassword(password);
     const user = await userService.createUser({ fullName, email, password: hashed, phone, city, companyType, workField, role, address });
