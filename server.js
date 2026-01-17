@@ -18,6 +18,9 @@ import userService from "./services/user.service.js";
 import employeeService from "./services/employee.service.js";
 import jobPostService from "./services/job.service.js";
 
+import bookingRoutes from "./routes/bookingRoute.js";
+import mentorshipRoutes from "./routes/mentorshipRoute.js";
+
 dotenv.config({ path: "./.env" });
 
 const app = express();
@@ -26,9 +29,15 @@ const PORT = process.env.PORT || 4000;
 // ===== Middlewares =====
 app.use(express.json());
 app.use(cookieParser());
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://www.internswallah.com",
+];
+
 app.use(
   cors({
-    origin: "https://www.internswallah.com",
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -67,16 +76,42 @@ const { authUser, authEmployee, authAnyUser } = authmiddleware;
 // ===== Auth & User Routes =====
 app.post("/signup", async (req, res) => {
   try {
-    const { fullName, email, password, phone, city, companyType, workField, role, address } = req.body;
+    const {
+      fullName,
+      email,
+      password,
+      phone,
+      city,
+      companyType,
+      workField,
+      role,
+      address,
+    } = req.body;
 
     const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: "User with this email is already exists" });
+    if (existing)
+      return res
+        .status(400)
+        .json({ message: "User with this email is already exists" });
 
     const existingPhone = await User.findOne({ phone });
-    if (existingPhone) return res.status(400).json({ message: "User with this mobile number is already exists" });
+    if (existingPhone)
+      return res
+        .status(400)
+        .json({ message: "User with this mobile number is already exists" });
 
     const hashed = await User.hashPassword(password);
-    const user = await userService.createUser({ fullName, email, password: hashed, phone, city, companyType, workField, role, address });
+    const user = await userService.createUser({
+      fullName,
+      email,
+      password: hashed,
+      phone,
+      city,
+      companyType,
+      workField,
+      role,
+      address,
+    });
 
     const token = user.generateAuthToken();
     res.cookie("token", token, {
@@ -107,15 +142,31 @@ app.post("/login", async (req, res) => {
 
 app.post("/employee-signup", async (req, res) => {
   try {
-    const { fullName, email, password, phone, city, gender, languages, type } = req.body;
+    const { fullName, email, password, phone, city, gender, languages, type } =
+      req.body;
     const existing = await Employee.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Employee with this email is already exists" });
+    if (existing)
+      return res
+        .status(400)
+        .json({ message: "Employee with this email is already exists" });
 
     const existingPhone = await User.findOne({ phone });
-    if (existingPhone) return res.status(400).json({ message: "Employee with this mobile number is already exists" });
+    if (existingPhone)
+      return res.status(400).json({
+        message: "Employee with this mobile number is already exists",
+      });
 
     const hashed = await Employee.hashPassword(password);
-    const employee = await employeeService.createEmployee({ fullName, email, password: hashed, phone, city, gender, languages, type });
+    const employee = await employeeService.createEmployee({
+      fullName,
+      email,
+      password: hashed,
+      phone,
+      city,
+      gender,
+      languages,
+      type,
+    });
 
     const token = employee.generateAuthToken();
     res.cookie("token", token, {
@@ -152,7 +203,8 @@ app.get("/logout", authAnyUser, async (req, res) => {
 });
 
 app.get("/me", authAnyUser, (req, res) => {
-  if (req.user) return res.json({ ...req.user.toObject(), userType: "employer" });
+  if (req.user)
+    return res.json({ ...req.user.toObject(), userType: "employer" });
   if (req.employee) return res.status(401).json({ message: "Unauthorized" });
   return res.status(401).json({ message: "Unauthorized" });
 });
@@ -169,12 +221,18 @@ app.put("/profile", authUser, async (req, res) => {
   delete updates.email;
   delete updates.password;
 
-  const updated = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true });
+  const updated = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: updates },
+    { new: true }
+  );
   res.json(updated);
 });
 
 app.get("/employee-profile", authEmployee, async (req, res) => {
-  const employee = await Employee.findById(req.employee._id).select("-password");
+  const employee = await Employee.findById(req.employee._id).select(
+    "-password"
+  );
   if (!employee) return res.status(404).json({ message: "Employee not found" });
   res.json(employee);
 });
@@ -184,35 +242,67 @@ app.put("/employee-profile", authEmployee, async (req, res) => {
   delete updates.email;
   delete updates.password;
 
-  const updated = await Employee.findByIdAndUpdate(req.employee._id, { $set: updates }, { new: true });
+  const updated = await Employee.findByIdAndUpdate(
+    req.employee._id,
+    { $set: updates },
+    { new: true }
+  );
   res.json(updated);
 });
 
-app.post("/employee-profile/upload-resume", authEmployee, upload.single("resume"), async (req, res) => {
-  try {
-    if (!req.file || !req.file.mimetype.includes("pdf")) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ message: "Only PDF files allowed" });
+app.post(
+  "/employee-profile/upload-resume",
+  authEmployee,
+  upload.single("resume"),
+  async (req, res) => {
+    try {
+      if (!req.file || !req.file.mimetype.includes("pdf")) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: "Only PDF files allowed" });
+      }
+      const result = await uploadOnCloudinary(req.file.path);
+      if (!result?.secure_url)
+        return res.status(500).json({ message: "Upload failed" });
+
+      const updated = await Employee.findByIdAndUpdate(
+        req.employee._id,
+        { resume: result.secure_url },
+        { new: true }
+      );
+      res.json({
+        message: "Resume uploaded",
+        resumeUrl: result.secure_url,
+        employee: updated,
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
     }
-    const result = await uploadOnCloudinary(req.file.path);
-    if (!result?.secure_url) return res.status(500).json({ message: "Upload failed" });
-
-    const updated = await Employee.findByIdAndUpdate(req.employee._id, { resume: result.secure_url }, { new: true });
-    res.json({ message: "Resume uploaded", resumeUrl: result.secure_url, employee: updated });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
   }
-});
+);
 
-app.delete("/employee-profile/delete-resume", authEmployee, async (req, res) => {
-  await Employee.findByIdAndUpdate(req.employee._id, { resume: "" });
-  res.json({ message: "Resume deleted" });
-});
+app.delete(
+  "/employee-profile/delete-resume",
+  authEmployee,
+  async (req, res) => {
+    await Employee.findByIdAndUpdate(req.employee._id, { resume: "" });
+    res.json({ message: "Resume deleted" });
+  }
+);
 
 // ===== Job Routes =====
 app.post("/post-job", authUser, async (req, res) => {
   try {
-    const { company, jobTitle, skills, location, salary, experience, jobType, postedOn, description } = req.body;
+    const {
+      company,
+      jobTitle,
+      skills,
+      location,
+      salary,
+      experience,
+      jobType,
+      postedOn,
+      description,
+    } = req.body;
     const user = await User.findById(req.user._id);
     const job = await jobPostService.createJobPost({
       companyId: user._id,
@@ -249,7 +339,9 @@ app.get("/jobs/:id", async (req, res) => {
 });
 
 app.get("/my-jobs", authUser, async (req, res) => {
-  const jobs = await Job.find({ companyId: req.user._id }).sort({ postedOn: -1 });
+  const jobs = await Job.find({ companyId: req.user._id }).sort({
+    postedOn: -1,
+  });
   res.json(jobs);
 });
 
@@ -262,6 +354,12 @@ app.delete("/jobs/:id", authUser, async (req, res) => {
   await Job.findByIdAndDelete(req.params.id);
   res.json({ message: "Job deleted" });
 });
+
+// booking routes
+app.use("/api/bookings", bookingRoutes);
+
+// mentorship route
+app.use("/api/mentorship", mentorshipRoutes);
 
 // ===== Start Server =====
 app.listen(PORT, () => {
