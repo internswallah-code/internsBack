@@ -35,7 +35,12 @@ export const appendMentorshipToGoogleSheet = async (mentorship) => {
   const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
   const auth = new google.auth.GoogleAuth({
-    keyFile: "service_account.json",
+    credentials: process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+      ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+      : undefined,
+    keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+      ? undefined
+      : "service_account.json",
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 
