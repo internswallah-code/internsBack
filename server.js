@@ -39,7 +39,7 @@ app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-  })
+  }),
 );
 
 // ===== DB Connection =====
@@ -202,11 +202,35 @@ app.get("/logout", authAnyUser, async (req, res) => {
   res.json({ message: "Logged out" });
 });
 
+// app.get("/me", authAnyUser, (req, res) => {
+//   if (req.user)
+//     return res.json({ ...req.user.toObject(), userType: "employer" });
+//   if (req.employee) return res.status(401).json({ message: "Unauthorized" });
+//   return res.status(401).json({ message: "Unauthorized" });
+// });
+
 app.get("/me", authAnyUser, (req, res) => {
-  if (req.user)
-    return res.json({ ...req.user.toObject(), userType: "employer" });
-  if (req.employee) return res.status(401).json({ message: "Unauthorized" });
+  if (req.user) {
+    return res.status(200).json({
+      user: req.user,
+      userType: "employer",
+    });
+  }
+
+  if (req.employee) {
+    return res.status(200).json({
+      user: req.employee,
+      userType: "employee",
+    });
+  }
+
+  // VERY IMPORTANT
   return res.status(401).json({ message: "Unauthorized" });
+});
+
+// Prevent inactivity route
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
 });
 
 // ===== Profile Routes =====
@@ -224,14 +248,14 @@ app.put("/profile", authUser, async (req, res) => {
   const updated = await User.findByIdAndUpdate(
     req.user._id,
     { $set: updates },
-    { new: true }
+    { new: true },
   );
   res.json(updated);
 });
 
 app.get("/employee-profile", authEmployee, async (req, res) => {
   const employee = await Employee.findById(req.employee._id).select(
-    "-password"
+    "-password",
   );
   if (!employee) return res.status(404).json({ message: "Employee not found" });
   res.json(employee);
@@ -245,7 +269,7 @@ app.put("/employee-profile", authEmployee, async (req, res) => {
   const updated = await Employee.findByIdAndUpdate(
     req.employee._id,
     { $set: updates },
-    { new: true }
+    { new: true },
   );
   res.json(updated);
 });
@@ -267,7 +291,7 @@ app.post(
       const updated = await Employee.findByIdAndUpdate(
         req.employee._id,
         { resume: result.secure_url },
-        { new: true }
+        { new: true },
       );
       res.json({
         message: "Resume uploaded",
@@ -277,7 +301,7 @@ app.post(
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
-  }
+  },
 );
 
 app.delete(
@@ -286,7 +310,7 @@ app.delete(
   async (req, res) => {
     await Employee.findByIdAndUpdate(req.employee._id, { resume: "" });
     res.json({ message: "Resume deleted" });
-  }
+  },
 );
 
 // ===== Job Routes =====
