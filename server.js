@@ -18,6 +18,9 @@ import userService from "./services/user.service.js";
 import employeeService from "./services/employee.service.js";
 import jobPostService from "./services/job.service.js";
 
+import courseRoutes from "./routes/courseRoutes.js";
+import internshipRoutes from "./routes/internshipRoutes.js";
+import jobRoutes from "./routes/jobRoutes.js";
 import bookingRoutes from "./routes/bookingRoute.js";
 import mentorshipRoutes from "./routes/mentorshipRoute.js";
 
@@ -313,71 +316,14 @@ app.delete(
   },
 );
 
-// ===== Job Routes =====
-app.post("/post-job", authUser, async (req, res) => {
-  try {
-    const {
-      company,
-      jobTitle,
-      skills,
-      location,
-      salary,
-      experience,
-      jobType,
-      postedOn,
-      description,
-    } = req.body;
-    const user = await User.findById(req.user._id);
-    const job = await jobPostService.createJobPost({
-      companyId: user._id,
-      company,
-      jobTitle,
-      skills,
-      location,
-      salary,
-      experience,
-      jobType,
-      postedOn,
-      description,
-    });
-    await job.save();
-    res.status(201).json({ message: "Job posted", job });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// job routes
+app.use("/jobs", jobRoutes);
 
-app.get("/jobs", async (req, res) => {
-  const jobs = await Job.find().sort({ postedOn: -1 });
-  res.json(jobs);
-});
+// course routes
+app.use("/api/courses", courseRoutes);
 
-app.get("/jobs/:id", async (req, res) => {
-  try {
-    const job = await Job.findOne({ _id: req.params.id });
-    if (!job) return res.status(404).json({ message: "Job not found" });
-    res.json(job);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-app.get("/my-jobs", authUser, async (req, res) => {
-  const jobs = await Job.find({ companyId: req.user._id }).sort({
-    postedOn: -1,
-  });
-  res.json(jobs);
-});
-
-app.delete("/jobs/:id", authUser, async (req, res) => {
-  const job = await Job.findById(req.params.id);
-  if (!job) return res.status(404).json({ message: "Job not found" });
-  if (job.companyId.toString() !== req.user._id.toString()) {
-    return res.status(403).json({ message: "Not authorized" });
-  }
-  await Job.findByIdAndDelete(req.params.id);
-  res.json({ message: "Job deleted" });
-});
+// internship routes
+app.use("/api/internships", internshipRoutes);
 
 // booking routes
 app.use("/api/bookings", bookingRoutes);
