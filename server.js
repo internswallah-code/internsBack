@@ -11,7 +11,6 @@ import { upload } from "./middlewares/multer.middleware.js";
 
 import User from "./models/user.model.js";
 import Employee from "./models/employee.model.js";
-import Job from "./models/jobPost.model.js";
 import blacklistTokenModel from "./models/blacklist.model.js";
 
 import userService from "./services/user.service.js";
@@ -23,6 +22,7 @@ import internshipRoutes from "./routes/internshipRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import bookingRoutes from "./routes/bookingRoute.js";
 import mentorshipRoutes from "./routes/mentorshipRoute.js";
+import techNewsRoute from "./routes/techNewsRoute.js";
 
 dotenv.config({ path: "./.env" });
 
@@ -36,6 +36,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "https://www.internswallah.com",
+  "http://localhost:4000",
 ];
 
 app.use(
@@ -330,6 +331,9 @@ app.use("/api/bookings", bookingRoutes);
 
 // mentorship route
 app.use("/api/mentorship", mentorshipRoutes);
+
+// news route
+app.use("/api/tech-news", techNewsRoute);
 
 // ===== Start Server =====
 app.listen(PORT, () => {
